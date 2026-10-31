@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from sqlalchemy import create_engine, inspect, text
 
 from app.db.models import Review, User
+from app.db.session import _ensure_columns
 from app.llm.prompt import sanitize_answer
 from app.services.entitlements import (
     NoCredit,
@@ -97,3 +99,15 @@ def test_review_cooldown(monkeypatch):
     assert can_submit_review(user) is True
     user.reviews = [Review(text="x", status="pending")]
     assert can_submit_review(user) is False
+
+
+def test_ensure_pending_text_column_on_existing_table():
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as conn:
+        conn.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY, vk_id INTEGER)"))
+    _ensure_columns(engine)
+    columns = {col["name"] for col in inspect(engine).get_columns("users")}
+    assert "pending_text" in columns
+    _ensure_columns(engine)
+    columns_again = {col["name"] for col in inspect(engine).get_columns("users")}
+    assert columns_again == columns

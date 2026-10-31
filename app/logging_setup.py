@@ -14,9 +14,9 @@ _CONFIGURED = False
     "clarify": "Уточнить",
     "continue": "Продолжить",
     "new_question": "Новый вопрос",
-    "social": "Общение",
+    "social": "Общий чат",
     "exit": "Выход",
-    "review": "Отзыв о работе",
+    "review": "Поблагодарить",
     "cancel_payment": "Отмена оплаты",
     "check_payment": "Проверить платёж",
     "rev_ok": "Одобрить отзыв",
@@ -124,8 +124,9 @@ def zhurnal_zapuska() -> None:
         )
     logger.info("Администратор ВК id: %s", settings.admin_vk_id or "не задан")
     logger.info(
-        "Чат «Общение»: %s",
+        "Общий чат: %s, peer_id %s",
         "ссылка задана" if settings.community_chat_url else "ссылка не задана",
+        settings.community_chat_peer_id or "не задан",
     )
     if settings.llm_stub:
         logger.info("ИИ: заглушка (LLM_STUB=true), DeepSeek не вызывается")

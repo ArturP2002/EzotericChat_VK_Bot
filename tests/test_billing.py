@@ -28,6 +28,30 @@ def test_apply_new_question_payment():
     assert user.pending_payment_id is None
 
 
+def test_apply_succeeded_payment_keeps_pending_text():
+    user = User(
+        vk_id=8,
+        free_questions=0,
+        free_clarifications=0,
+        bonus_questions=0,
+        paid_questions=0,
+        paid_continues=0,
+        status="awaiting_payment",
+        pending_payment_id="pay-3",
+        pending_text="Сохранённый вопрос про работу и страх.",
+    )
+    record = Payment(
+        yookassa_id="pay-3",
+        vk_user_id=8,
+        action="new_question",
+        status="pending",
+        amount="100.00",
+    )
+    apply_succeeded_payment(user, record)
+    assert user.paid_questions == 1
+    assert user.pending_text == "Сохранённый вопрос про работу и страх."
+
+
 def test_apply_continue_payment():
     user = User(
         vk_id=6,

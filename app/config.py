@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     admin_vk_id: int = 0
     community_chat_url: str = ""
+    # peer_id беседы «Общий чат», например 2000000001. Нужен, чтобы публиковать одобренные отзывы.
+    community_chat_peer_id: int = 0
 
     price_rub: int = 100
     database_url: str = "postgresql+psycopg2://novaigra:novaigra@localhost:5432/novaigra"

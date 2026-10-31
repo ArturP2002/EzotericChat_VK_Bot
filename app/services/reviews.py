@@ -81,6 +81,29 @@ def moderate(session: Session, review_id: int, approve: bool) -> tuple[User, Rev
     return user, review
 
 
+async def publish_review_to_chat(sender: VkSender, review: Review) -> bool:
+    """Анонимно публикует одобренный отзыв в общий чат. Без имени и ссылки на профиль."""
+    peer_id = get_settings().community_chat_peer_id
+    if not peer_id:
+        logger.info(
+            "Публикация отзыва #%s пропущена: COMMUNITY_CHAT_PEER_ID не задан",
+            review.id,
+        )
+        return False
+    body = f"{texts.REVIEW_CHAT_POST}\n\n{review.text.strip()}"
+    try:
+        await sender.send_to_peer(peer_id, body)
+        logger.info("Отзыв #%s опубликован в общем чате peer_id=%s", review.id, peer_id)
+        return True
+    except Exception:
+        logger.exception(
+            "Не удалось опубликовать отзыв #%s в общий чат peer_id=%s",
+            review.id,
+            peer_id,
+        )
+        return False
+
+
 async def handle_admin_decision(
     session: Session,
     sender: VkSender,
@@ -95,8 +118,15 @@ async def handle_admin_decision(
     user, review = result
     session.commit()
     if approve:
+        published = await publish_review_to_chat(sender, review)
         await sender.send(user.vk_id, texts.REVIEW_APPROVED, keyboard=idle_keyboard(user))
-        await sender.send(admin_id, f"Отзыв #{review.id} одобрен. Начислен вопрос.")
+        if published:
+            extra = " Опубликован в общем чате."
+        elif get_settings().community_chat_peer_id:
+            extra = " В общий чат не отправился — проверьте COMMUNITY_CHAT_PEER_ID и что бот в беседе."
+        else:
+            extra = " В общий чат не отправился: COMMUNITY_CHAT_PEER_ID не задан."
+        await sender.send(admin_id, f"Отзыв #{review.id} одобрен. Начислен вопрос.{extra}")
     else:
         await sender.send(user.vk_id, texts.REVIEW_REJECTED)
         await sender.send(admin_id, f"Отзыв #{review.id} отклонён.")

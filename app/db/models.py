@@ -28,6 +28,7 @@ class User(Base):
     pending_action: Mapped[str | None] = mapped_column(String(32), nullable=True)
     pending_payment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     pending_payment_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    pending_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     welcomed: Mapped[bool] = mapped_column(Boolean, default=False)
     last_bonus_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

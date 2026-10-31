@@ -61,10 +61,14 @@ class DialogService:
 
         if not user.welcomed:
             user.welcomed = True
-            logger.info("Первый вход пользователя %s — отправляю приветствие", vk_id)
-            await self.sender.send(vk_id, texts.WELCOME, keyboard=idle_keyboard(user))
+            logger.info("Первый вход пользователя %s", vk_id)
             if not body or is_smalltalk(body):
-                user.status = "idle"
+                user.status = "awaiting_question"
+                await self.sender.send(
+                    vk_id,
+                    texts.ASK_QUESTION,
+                    keyboard=awaiting_question_keyboard(),
+                )
                 return
             # В первом сообщении уже сформулирован вопрос — разбираем его сразу.
 
@@ -78,6 +82,8 @@ class DialogService:
             return
 
         if user.status == "awaiting_payment":
+            if body and not is_smalltalk(body):
+                user.pending_text = body
             logger.info("Пользователь %s пишет, пока ждём оплату — напоминаю ссылку", vk_id)
             await self._remind_payment(user)
             return
@@ -126,6 +132,7 @@ class DialogService:
             close_active_topic(self.session, user)
             user.status = "idle"
             user.pending_action = None
+            user.pending_text = None
             logger.info("Пользователь %s вышел, тема закрыта", vk_id)
             await self.sender.send(vk_id, texts.EXITED, keyboard=idle_keyboard(user))
             return
@@ -133,7 +140,7 @@ class DialogService:
         if cmd == "social":
             url = self.settings.community_chat_url.strip()
             msg = f"{texts.SOCIAL_CHAT}\n{url}" if url else texts.SOCIAL_CHAT_MISSING
-            logger.info("Пользователь %s открывает «Общение», ссылка %s", vk_id, "есть" if url else "не задана")
+            logger.info("Пользователь %s открывает «Общий чат», ссылка %s", vk_id, "есть" if url else "не задана")
             await self.sender.send(vk_id, msg, keyboard=self._kb(user))
             return
 
@@ -148,6 +155,7 @@ class DialogService:
             user.pending_action = None
             user.pending_payment_id = None
             user.pending_payment_url = None
+            user.pending_text = None
             logger.info("Пользователь %s отменил ожидание оплаты, статус %s", vk_id, user.status)
             await self.sender.send(vk_id, "Оплату отменили.", keyboard=self._kb(user))
             return
@@ -168,11 +176,20 @@ class DialogService:
 
     async def on_payment_succeeded(self, vk_id: int, action: str) -> None:
         user = get_or_create_user(self.session, vk_id)
+        pending = (user.pending_text or "").strip()
+        user.pending_text = None
         logger.info(
-            "Сообщаю пользователю %s, что оплата «%s» прошла",
+            "Сообщаю пользователю %s, что оплата «%s» прошла, сохранённый текст %s",
             vk_id,
             ИМЕНА_ДЕЙСТВИЙ_ОПЛАТЫ.get(action, action),
+            "есть" if pending else "нет",
         )
+        if pending:
+            if action == "new_question":
+                await self._handle_new_question(user, pending)
+            else:
+                await self._handle_continue(user, pending)
+            return
         if action == "new_question":
             user.status = "awaiting_question"
             await self.sender.send(
@@ -186,6 +203,7 @@ class DialogService:
 
     async def _request_new_question(self, user: User) -> None:
         if available_questions(user) <= 0:
+            user.pending_text = None
             await self._require_payment(user, "new_question")
             return
 
@@ -227,8 +245,10 @@ class DialogService:
 
     async def _handle_new_question(self, user: User, text: str) -> None:
         if available_questions(user) <= 0:
+            user.pending_text = text
             await self._require_payment(user, "new_question")
             return
+        user.pending_text = None
         kind = consume_question(user)
         logger.info(
             "Списан %s вопрос у %s, осталось вопросов %s",
@@ -245,8 +265,10 @@ class DialogService:
             await self._handle_new_question(user, text)
             return
         if available_continues(user) <= 0:
+            user.pending_text = text
             await self._require_payment(user, "continue")
             return
+        user.pending_text = None
         kind = consume_continue(user)
         logger.info(
             "Списано %s уточнение у %s, осталось уточнений %s",
@@ -330,6 +352,8 @@ class DialogService:
         )
         url = record.confirmation_url or self.settings.yookassa_payment_url
         body = texts.PAYMENT_CREATED.format(price=self.settings.price_rub)
+        if not self.settings.payments_live:
+            body += "\n\nВ тестовом режиме нажмите «Проверить платёж»."
         await self.sender.send(user.vk_id, body, keyboard=payment_keyboard(url))
 
     async def _check_payment(self, user: User) -> None:
@@ -386,9 +410,12 @@ class DialogService:
 
     async def _remind_payment(self, user: User) -> None:
         url = user.pending_payment_url or self.settings.yookassa_payment_url
+        body = texts.PAYMENT_PENDING
+        if not self.settings.payments_live:
+            body += "\n\nВ тестовом режиме нажмите «Проверить платёж»."
         await self.sender.send(
             user.vk_id,
-            texts.PAYMENT_PENDING,
+            body,
             keyboard=payment_keyboard(url),
         )
 
