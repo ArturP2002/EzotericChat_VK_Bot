@@ -140,7 +140,7 @@ class DialogService:
         if cmd == "social":
             url = self.settings.community_chat_url.strip()
             msg = f"{texts.SOCIAL_CHAT}\n{url}" if url else texts.SOCIAL_CHAT_MISSING
-            logger.info("Пользователь %s открывает «Общий чат», ссылка %s", vk_id, "есть" if url else "не задана")
+            logger.info("Пользователь %s открывает «Общение», ссылка %s", vk_id, "есть" if url else "не задана")
             await self.sender.send(vk_id, msg, keyboard=self._kb(user))
             return
 

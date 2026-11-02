@@ -36,8 +36,8 @@ def test_after_answer_has_no_clarify_and_red_new_question():
     assert "Уточнить" not in labels
     assert "Продолжить" not in labels
     assert "Новый вопрос (100 ₽)" in labels
-    assert "Поблагодарить" in labels
-    assert "Общий чат" in labels
+    assert "Отзыв" in labels
+    assert "Общение" in labels
     assert "Выход" in labels
 
     colors = {btn["action"]["label"]: btn.get("color") for btn in _buttons(kb)}
@@ -61,7 +61,7 @@ def test_awaiting_question_keyboard_has_no_ask_cta():
     assert "Задать вопрос" not in labels
     assert "Новый вопрос" not in labels
     assert "Выход" in labels
-    assert "Общий чат" in labels
+    assert "Общение" in labels
 
 
 def test_payment_keyboard_stub_has_check(monkeypatch):

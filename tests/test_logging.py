@@ -11,8 +11,8 @@ def test_kratko_rezhet_dlinnyy_tekst():
 def test_imya_knopki():
     assert imya_knopki("clarify") == "Уточнить"
     assert imya_knopki("new_question") == "Новый вопрос"
-    assert imya_knopki("social") == "Общий чат"
-    assert imya_knopki("review") == "Поблагодарить"
+    assert imya_knopki("social") == "Общение"
+    assert imya_knopki("review") == "Отзыв"
 
 
 def test_nastroit_zhurnal(tmp_path, monkeypatch):

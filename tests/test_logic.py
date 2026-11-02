@@ -53,7 +53,22 @@ def test_sanitize_strips_codes():
     assert "Код" not in cleaned
     assert "ПРЕЛОМЛЕНИЕ" not in cleaned
     assert "фильтр восприятия" in cleaned
-    assert "Если хотите, могу" in cleaned
+    assert "Если хотите, могу помочь:" in cleaned
+    assert "1." in cleaned
+    assert "2." in cleaned
+
+
+def test_old_offers_become_numbered_list():
+    raw = (
+        "Разбор ситуации.\n\n"
+        "Если хотите, могу отдельно разобрать фильтр восприятия.\n"
+        "Если хотите, могу сопоставить действия и внутренний вектор."
+    )
+    cleaned = sanitize_answer(raw)
+    assert cleaned.count("Если хотите, могу") == 1
+    assert "Если хотите, могу помочь:" in cleaned
+    assert "1. отдельно разобрать фильтр восприятия." in cleaned
+    assert "2. сопоставить действия и внутренний вектор." in cleaned
 
 
 def test_entitlements_consume_and_refund():

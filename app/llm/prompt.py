@@ -69,10 +69,25 @@ def system_prompt() -> str:
     return PROMPT_PATH.read_text(encoding="utf-8")
 
 
+_OLD_OFFER = re.compile(r"^Если хотите, могу\s+(?!помочь:)(.+)$", re.MULTILINE)
+
+
 def ensure_offers(text: str) -> str:
-    if "Если хотите, могу" in (text or ""):
-        return text
-    return (text or "").rstrip() + GENERIC_OFFERS
+    """В конце — заголовок и пункты 1., 2. Если модель дала старый формат, собираем его заново."""
+    raw = (text or "").rstrip()
+    old_lines = _OLD_OFFER.findall(raw)
+    if old_lines:
+        body = _OLD_OFFER.sub("", raw).rstrip()
+        numbered = "\n".join(
+            f"{i}. {item.strip().rstrip('.')}."
+            for i, item in enumerate(old_lines, 1)
+        )
+        return f"{body}\n\nЕсли хотите, могу помочь:\n{numbered}"
+    if "Если хотите, могу помочь:" in raw:
+        return raw
+    if "Если хотите, могу" in raw:
+        return raw
+    return raw + GENERIC_OFFERS
 
 
 def sanitize_answer(text: str) -> str:

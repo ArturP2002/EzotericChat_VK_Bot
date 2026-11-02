@@ -21,9 +21,9 @@ def _social_and_exit(kb: Keyboard) -> None:
     settings = get_settings()
     chat_url = settings.community_chat_url.strip()
     if chat_url:
-        kb.add(OpenLink(chat_url, "Общий чат"))
+        kb.add(OpenLink(chat_url, "Общение"))
     else:
-        kb.add(Callback("Общий чат", _payload({"cmd": "social"})))
+        kb.add(Callback("Общение", _payload({"cmd": "social"})))
     kb.add(Callback("Выход", _payload({"cmd": "exit"})))
 
 
@@ -47,7 +47,7 @@ def after_answer_keyboard(user: User, *, topic_active: bool) -> str:
 
     if can_submit_review(user):
         kb.row()
-        kb.add(Callback("Поблагодарить", _payload({"cmd": "review"})))
+        kb.add(Callback("Отзыв", _payload({"cmd": "review"})))
 
     return kb.get_json()
 
